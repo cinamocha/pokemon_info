@@ -5,33 +5,63 @@ from io import BytesIO
 #Pillow(PIL)はポケモン画像を取得して表示するライブラリ
 #BytesIOは画像データを直接メモリに読み込んで操作する
 
-def fetch_evolution_chain(species_url):
-  species_response = requests.get(species_url)
-  
-  if species_response.status_code == 200:
-    species_data = species_response.json()
-    evolution_url = species_data['evolution_chain']['url']
+#get_japanese_nameで日本語名を取得できる関数を定義する
+def get_japanese_name(species_url):
+  response = requests.get(species_url)
+  if response.status_code == 200:
+    data = response.json()
+    for name_entry in data['names']:
+      if name_entry['language']['name'] == 'ja':
+        return name_entry['name']
+  return '名前不明'
 
-    evolution_response = requests.get(evolution_url)
-    if evolution_response.status_code == 200:
-      evolution_data = evolution_response.json()
-      chain = evolution_data['chain']
-      evolution_chain = extract_evolution_chain(chain)
-      print('進化チェーン:' + ' → '.join(evolution_chain))
-    else:
-      print('進化チェーン情報が取得できませんでした。')
-  else:
-    print('ポケモンの種情報が取得できませんでした。')
+#get_japanese_typeでタイプ名を日本語で取得できる関数を定義
+def get_japanese_type(type_url):
+  response = requests.get(type_url)
+  if response.status_code == 200:
+    data = response.json()
+    for name_entry in data['names']:
+      if name_entry['language']['name'] == 'ja':
+        return name_entry['name']
+  return 'タイプ不明'
 
-def extract_evolution_chain(chain):
-  evolution_chain = []
-  while chain:
-    evolution_chain.append(chain['species']['name'])
-    if chain['evolves_to']:
-      chain = chain['evolves_to'][0]
-    else:
-      break
-  return evolution_chain
+#get_japanese_abilityで特性を日本語で取得できる関数を定義
+def get_japanese_ability(ability_url):
+  response = requests.get(ability_url)
+  if response.status_code == 200:
+    data = response.json()
+    for name_entry in data['names']:
+      if name_entry['language']['name'] == 'ja':
+        return name_entry['name']
+  return '特性不明'
+
+#get_evolution_chainは進化チェーンのURLを取得し、g_e_names関数を呼び出す
+def get_evolution_chain(species_url):
+  response = requests.get(species_url) #ここで種族データ取得
+  if response.status_code == 200:
+    data = response.json() #JSONデータを代入
+    chain_url = data['evolution_chain']['url'] #ここで進化チェーンのURL取得
+    return get_evolution_names(chain_url) #名前リスト取得
+  return ['進化情報なし']
+
+#進化段階に含まれるポケモンをすべて日本語名で取得
+def get_evolution_names(chain_url):
+  response = requests.get(chain_url)
+  if response.status_code == 200:
+    data = response.json()
+    chain = data['chain']
+    evolution_names = []
+
+    while chain: #進化段階がなくなるまでたどっていく
+      species_url = chain['species']['url']
+      evolution_names.append(get_japanese_name(species_url))
+      if chain['evolves_to']:
+        chain = chain['evolves_to'][0]
+      else:
+        chain = None
+
+    return evolution_names
+  return ['進化情報なし']
 
 def pokemon_info(pokemon_name):
   url = f'https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}'
@@ -39,20 +69,25 @@ def pokemon_info(pokemon_name):
   
   if response.status_code == 200:
     data = response.json()
+    species_url = data['species']['url']
+    japanese_name = get_japanese_name(species_url)
+    
     name = data['name']
     pokedex_id = data['id']
     types = [t['type']['name'] for t in data['types']]
-    abilities = [a['ability']['name'] for a in data ['abilities']]
+    abilities = [get_japanese_ability(a['ability']['url']) for a in data ['abilities']]
     weight = data['weight']
     height = data['height']
     image_url = data['sprites']['front_default']
+    evolution_chain = get_evolution_chain(species_url)
     
     print(f'図鑑番号：{pokedex_id}')
-    print(f'名前：{name}')
+    print(f'名前：{japanese_name} (英語名：{name})')
     print(f'タイプ：{','.join(types)}')
     print(f'特性：{',' .join(abilities)}')
     print(f'重さ：{weight}kg')
     print(f'高さ：{height}m')
+    print(f'進化チェーン：{'→' .join(evolution_chain)}')
     print(f'画像：{image_url}')
     
     #画像の表示
@@ -63,9 +98,6 @@ def pokemon_info(pokemon_name):
       img.show()
     else:
       print('画像が見つかりませんでした')
-    
-    species_url = data['species']['url']
-    fetch_evolution_chain(species_url)
   
   else:
     print(f'{pokemon_name}が見つかりません')
