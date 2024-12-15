@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ポケモン図鑑</title>
+</head>
+<body>
+  <h1>ポケモン情報</h1>
+  <form method="GET" action="">
+    <input type="text" name="pokemon_name" placeholder="ポケモンの名前を入力">
+    <button type="submit">検索</button>
+  </form>
+
+  {% if pokemon_data %}
+    {% if pokemon_data.error %}
+      <p style="color: red;">{{ pokemon_data.error }}</p>
+    {% else %}
+      <h2>{{ pokemon_data.name }}</h2>
+      <p>タイプ: {{ pokemon_data.types|join:", " }}</p>
+      <p>重さ: {{ pokemon_data.weight }} kg</p>
+      <p>高さ: {{ pokemon_data.height }} m</p>
+      <img src="{{ pokemon_data.image_url }}" alt="ポケモン画像">
+    {% endif %}
+  {% endif %}
+</body>
+</html>

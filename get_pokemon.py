@@ -102,5 +102,6 @@ def pokemon_info(pokemon_name):
   else:
     print(f'{pokemon_name}が見つかりません')
 
+#メイン処理
 pokemon_name = input('ポケモンの名前を入力してください！')
 pokemon_info(pokemon_name)
